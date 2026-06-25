@@ -23,37 +23,87 @@ by hand.
 
 ## Requirements
 
-macOS with a **modern Tk** (Tk 9 / 8.6). The system Command Line Tools Python
-ships a broken Tk 8.5 that crashes, so install Homebrew's Python + Tk:
+| Requirement | Notes |
+|-------------|-------|
+| macOS | 10.13 or newer |
+| [Homebrew](https://brew.sh) | Package manager, used to install a modern Python + Tk |
+| `python-tk` (Python 3 + Tk 9) | The system Command Line Tools Python ships a **broken Tk 8.5** that crashes on launch — you must use Homebrew's build |
+| `ssh` + `Terminal.app` | Built into macOS |
+| Pillow | **Optional** — only needed to regenerate the app icon (see below) |
+
+### 1. Install Homebrew (skip if you already have it)
+
+```sh
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+### 2. Install Python + Tk
 
 ```sh
 brew install python-tk
 ```
 
-## Run
+This pulls in `python@3.14` and `tcl-tk` (Tk 9). Verify Tk works (should print
+a version like `9.0` and **not** crash):
 
 ```sh
-python3 ssh_manager.py
+python3 -c "import tkinter; tkinter.Tk(); print('Tk OK')"
 ```
 
-…or build a double-clickable app bundle:
+> ⚠️ If you run the app with the system `/usr/bin/python3` it will crash with
+> a `Tcl_Panic` / `TkpInit` abort. Always use the Homebrew Python.
+
+## Install & run
+
+Clone the repo:
+
+```sh
+git clone https://github.com/aidevelopmentsnz/ssh-manager.git
+cd ssh-manager
+```
+
+Run it directly:
+
+```sh
+/usr/local/opt/python@3.14/bin/python3.14 ssh_manager.py
+# (Apple Silicon: /opt/homebrew/opt/python@3.14/bin/python3.14 ssh_manager.py)
+```
+
+…or build a double-clickable app bundle in `~/Applications`:
 
 ```sh
 ./build_app.sh
+open "$HOME/Applications/SSH Manager.app"
 ```
 
-This creates **SSH Manager.app** in `~/Applications`.
+The build script auto-detects the Homebrew Python (Intel or Apple Silicon) and
+points the bundle at your local checkout, so edits to `ssh_manager.py` take
+effect next launch.
+
+> First launch may be blocked by Gatekeeper (unsigned app). Right-click the
+> app → **Open** → **Open** to approve it once.
 
 ## Regenerating the icon
 
-The app icon is generated from `make_icon.py` (requires Pillow):
+The app icon is generated from `make_icon.py` (requires Pillow). Use a venv so
+you don't touch the Homebrew Python:
 
 ```sh
-python3 -m venv /tmp/iconvenv && /tmp/iconvenv/bin/pip install Pillow
-/tmp/iconvenv/bin/python make_icon.py   # writes icon_master.png
+python3 -m venv /tmp/iconvenv
+/tmp/iconvenv/bin/pip install Pillow
+/tmp/iconvenv/bin/python make_icon.py    # writes icon_master.png
+./build_app.sh                           # rebuilds icon.icns + logo.png
 ```
 
-Then rebuild `icon.icns` / `logo.png` via `build_app.sh`.
+## Project layout
+
+| File | Purpose |
+|------|---------|
+| `ssh_manager.py` | The app (UI + connection logic) |
+| `build_app.sh` | Builds `SSH Manager.app` into `~/Applications` |
+| `make_icon.py` | Generates the icon master PNG |
+| `icon_master.png` | 1024px icon source |
+| `icon.icns` / `logo.png` | App-bundle icon / in-app header logo |
 
 ## License
 
