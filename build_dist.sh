@@ -17,7 +17,8 @@ SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SRC_DIR"
 
 APP_NAME="SSH Manager"
-BUNDLE_ID="co.novaweb.sshmanager"
+BUNDLE_ID="nz.co.aidevelopments.sshmanager"
+APP_VERSION="${APP_VERSION:-1.0}"
 VENV="${BUILD_VENV:-/tmp/sshmgr-buildvenv}"
 
 # Locate a Homebrew Python with a working Tk (Intel or Apple Silicon).
@@ -48,6 +49,14 @@ rm -rf build "dist/$APP_NAME.app" "dist/$APP_NAME.dmg"
     --add-data "logo.png:." \
     --osx-bundle-identifier "$BUNDLE_ID" \
     ssh_manager.py
+
+# Stamp a real version into the bundle (PyInstaller leaves it at 0.0.0).
+PLIST="dist/$APP_NAME.app/Contents/Info.plist"
+for key in CFBundleShortVersionString CFBundleVersion; do
+    /usr/libexec/PlistBuddy -c "Set :$key $APP_VERSION" "$PLIST" 2>/dev/null \
+        || /usr/libexec/PlistBuddy -c "Add :$key string $APP_VERSION" "$PLIST"
+done
+echo "Stamped version $APP_VERSION"
 
 # Build a drag-to-install DMG with hdiutil (no Finder automation needed).
 echo "Building DMG…"

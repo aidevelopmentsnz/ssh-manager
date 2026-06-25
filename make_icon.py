@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """Render the SSH Manager app icon (Proton-inspired) as a 1024px master PNG."""
 
+import os
+
 from PIL import Image, ImageDraw
+
+OUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "icon_master.png")
 
 S = 1024
 SS = 4  # supersample factor for crisp anti-aliasing
@@ -80,8 +85,8 @@ def make():
     )
 
     img = img.resize((S, S), Image.LANCZOS)
-    img.save("/Users/josh/SSHManager/icon_master.png")
-    print("Wrote icon_master.png")
+    img.save(OUT_PATH)
+    print(f"Wrote {OUT_PATH}")
 
 
 if __name__ == "__main__":
