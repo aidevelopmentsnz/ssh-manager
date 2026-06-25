@@ -83,6 +83,26 @@ effect next launch.
 > First launch may be blocked by Gatekeeper (unsigned app). Right-click the
 > app → **Open** → **Open** to approve it once.
 
+## Build a distributable app + DMG
+
+To produce a **self-contained app** (bundles its own Python + Tk, so end users
+need *nothing* installed — and the menu bar reads "SSH Manager", not "Python")
+plus a drag-to-install DMG:
+
+```sh
+brew install python-tk      # build machine only
+./build_dist.sh
+```
+
+Outputs:
+
+- `dist/SSH Manager.app` — standalone app, no dependencies
+- `dist/SSH Manager.dmg` — drag-to-Applications installer
+
+The app is **unsigned**, so on first launch recipients right-click the app →
+**Open** → **Open** to get past Gatekeeper (only needed once). To ship without
+that warning you'd sign + notarize with an Apple Developer ID.
+
 ## Regenerating the icon
 
 The app icon is generated from `make_icon.py` (requires Pillow). Use a venv so
