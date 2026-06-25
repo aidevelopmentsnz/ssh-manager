@@ -14,6 +14,7 @@ Python ships a broken Tk 8.5 and will crash.
 import json
 import os
 import subprocess
+import sys
 import tkinter as tk
 from tkinter import font as tkfont
 from tkinter import filedialog
@@ -22,6 +23,16 @@ CONFIG_DIR = os.path.expanduser("~/.config/ssh-manager")
 CONFIG_PATH = os.path.join(CONFIG_DIR, "connections.json")
 
 DONATE_URL = "https://buy.stripe.com/fZu5kE74kbb67dK5V86J200"
+
+
+def resource_path(name):
+    """Locate a bundled data file, whether running from source or frozen."""
+    if getattr(sys, "frozen", False):
+        base = getattr(sys, "_MEIPASS",
+                       os.path.dirname(os.path.abspath(sys.executable)))
+    else:
+        base = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base, name)
 
 # ---------------------------------------------------------------------------
 # Palette (Proton-inspired)
@@ -529,8 +540,7 @@ class App(tk.Tk):
         row = tk.Frame(header, bg=BG)
         row.pack(fill="x")
 
-        logo_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "logo.png")
+        logo_path = resource_path("logo.png")
         try:
             self.logo_img = tk.PhotoImage(file=logo_path)
             tk.Label(row, image=self.logo_img, bg=BG).pack(side="left",

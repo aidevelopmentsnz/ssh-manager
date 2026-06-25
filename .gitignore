@@ -4,3 +4,6 @@ __pycache__/
 .DS_Store
 AppIcon.iconset/
 build/
+dist/
+*.spec
+*.dmg
