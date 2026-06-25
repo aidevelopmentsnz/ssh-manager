@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SSH Manager — a dark SSH connection manager for macOS</title>
+<meta name="description" content="Save your SSH connections and open them in Terminal with a double-click. A modern, dark-themed SSH connection manager for macOS by AI Developments.">
+<meta property="og:title" content="SSH Manager for macOS">
+<meta property="og:description" content="Save your SSH connections and open them in Terminal with a double-click.">
+<meta property="og:image" content="https://aidevelopmentsnz.github.io/ssh-manager/icon.png">
+<meta property="og:type" content="website">
+<link rel="icon" href="icon.png">
+<style>
+  :root{
+    --bg:#16141F; --surface:#25232E; --surface-hi:#322F3D; --sel:#312C46;
+    --border:#34313F; --text:#EDECF0; --subtext:#8F8A9D;
+    --accent:#6D4AFF; --accent-hi:#8A6EFF; --red:#DC3251;
+    --teal:#3CB6A6; --orange:#F0A23B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--text);line-height:1.55;
+    background-image:radial-gradient(1100px 600px at 80% -10%,rgba(109,74,255,.20),transparent 60%),
+                     radial-gradient(900px 500px at -10% 10%,rgba(60,182,166,.10),transparent 55%);
+    background-attachment:fixed;
+  }
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+
+  /* nav */
+  nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:600;letter-spacing:.2px}
+  .brand img{width:28px;height:28px;border-radius:7px}
+  .nav-links{display:flex;gap:22px;color:var(--subtext);font-size:14px;font-weight:500}
+  .nav-links a:hover{color:var(--text)}
+
+  /* hero */
+  .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center;
+        padding:48px 0 72px}
+  .eyebrow{color:var(--accent-hi);font-weight:700;font-size:13px;letter-spacing:1.5px;
+           text-transform:uppercase;margin-bottom:16px}
+  h1{font-size:54px;line-height:1.05;font-weight:800;letter-spacing:-1px}
+  h1 .grad{background:linear-gradient(90deg,#8A6EFF,#C9A6FF);-webkit-background-clip:text;
+           background-clip:text;color:transparent}
+  .lede{color:var(--subtext);font-size:19px;margin:20px 0 28px;max-width:520px}
+  .cta{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+  .btn{display:inline-flex;align-items:center;gap:9px;padding:14px 24px;border-radius:13px;
+       font-weight:700;font-size:15px;border:1px solid transparent;transition:.15s;cursor:pointer}
+  .btn-primary{background:var(--accent);color:#fff;box-shadow:0 8px 30px rgba(109,74,255,.35)}
+  .btn-primary:hover{background:var(--accent-hi);transform:translateY(-1px)}
+  .btn-ghost{background:var(--surface);border-color:var(--border);color:var(--text)}
+  .btn-ghost:hover{background:var(--surface-hi)}
+  .sub-note{color:var(--subtext);font-size:13px;margin-top:16px}
+  .sub-note code{background:var(--surface);padding:2px 7px;border-radius:6px;
+                 font-size:12px;border:1px solid var(--border)}
+
+  /* brew snippet */
+  .brew{margin-top:22px;background:#0F0E16;border:1px solid var(--border);border-radius:12px;
+        padding:14px 16px;font-family:"SF Mono",Menlo,monospace;font-size:13.5px;
+        color:#cdbcff;display:flex;align-items:center;justify-content:space-between;gap:12px;
+        max-width:520px;overflow-x:auto}
+  .brew span{white-space:nowrap}
+  .brew .dollar{color:var(--subtext)}
+  .copy{background:var(--surface);border:1px solid var(--border);color:var(--subtext);
+        border-radius:7px;padding:5px 10px;font-size:12px;cursor:pointer;flex:0 0 auto}
+  .copy:hover{color:var(--text)}
+
+  /* app window mock */
+  .mock{background:var(--bg);border:1px solid var(--border);border-radius:16px;overflow:hidden;
+        box-shadow:0 30px 80px rgba(0,0,0,.55);transform:rotate(.4deg)}
+  .titlebar{background:#211F2B;height:38px;display:flex;align-items:center;position:relative;
+            padding:0 14px;border-bottom:1px solid var(--border)}
+  .lights{display:flex;gap:8px}
+  .lights i{width:12px;height:12px;border-radius:50%;display:block}
+  .lights .r{background:#FF5F57}.lights .y{background:#FEBC2E}.lights .g{background:#28C840}
+  .titlebar b{position:absolute;left:0;right:0;text-align:center;font-size:13px;
+              color:var(--subtext);font-weight:600}
+  .mbody{padding:22px}
+  .mhead{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+  .mhead .ico{width:52px;height:52px;border-radius:13px;
+              background:linear-gradient(160deg,#8A6EFF,#5834E0);display:flex;
+              align-items:center;justify-content:center;color:#fff;font-size:26px;font-weight:700}
+  .mhead h3{font-size:24px;font-weight:800;line-height:1}
+  .mhead .by{font-size:11px;color:var(--subtext);margin-top:4px}
+  .mhead .by a{color:var(--accent);font-weight:700;text-decoration:underline}
+  .msearch{background:var(--surface);border:1px solid var(--border);border-radius:11px;
+           padding:12px 15px;color:var(--subtext);font-size:13px;margin-bottom:14px}
+  .card{background:var(--surface);border-radius:14px;padding:13px 16px;display:flex;
+        align-items:center;gap:13px;margin-bottom:10px}
+  .av{width:38px;height:38px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;
+      justify-content:center;color:#fff;font-weight:700;font-size:15px}
+  .card .meta{flex:1;min-width:0}
+  .card .nm{font-weight:700;font-size:15px}
+  .card .ho{font-family:"SF Mono",Menlo,monospace;font-size:12px;color:var(--subtext);margin-top:2px}
+  .card .ch{color:var(--subtext);font-size:20px}
+  .mfoot{display:flex;gap:8px;margin-top:16px}
+  .mbtn{font-size:12.5px;font-weight:700;padding:9px 14px;border-radius:10px;
+        background:var(--surface);color:var(--text)}
+  .mbtn.pri{background:var(--accent);color:#fff;margin-right:auto}
+  .mbtn.del{color:var(--red)}
+
+  /* features */
+  .section{padding:64px 0}
+  .section h2{font-size:34px;font-weight:800;text-align:center;letter-spacing:-.5px}
+  .section .sub{color:var(--subtext);text-align:center;margin:12px auto 0;max-width:560px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:44px}
+  .feat{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px}
+  .feat .fi{width:42px;height:42px;border-radius:11px;background:var(--sel);display:flex;
+            align-items:center;justify-content:center;font-size:21px;margin-bottom:14px}
+  .feat h4{font-size:17px;font-weight:700;margin-bottom:7px}
+  .feat p{color:var(--subtext);font-size:14.5px}
+
+  /* install */
+  .install{background:var(--surface);border:1px solid var(--border);border-radius:20px;
+           padding:40px;margin:24px 0}
+  .steps{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:8px}
+  .step h4{font-size:16px;margin-bottom:10px;display:flex;align-items:center;gap:9px}
+  .step h4 .n{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;
+              font-size:13px;display:flex;align-items:center;justify-content:center;font-weight:700}
+  .code{background:#0F0E16;border:1px solid var(--border);border-radius:11px;padding:14px 16px;
+        font-family:"SF Mono",Menlo,monospace;font-size:13px;color:#cdbcff;overflow-x:auto;
+        white-space:pre}
+  .note{color:var(--subtext);font-size:13.5px;margin-top:14px}
+  .note b{color:var(--text)}
+
+  footer{border-top:1px solid var(--border);margin-top:40px;padding:34px 0 60px;
+         color:var(--subtext);font-size:14px;display:flex;justify-content:space-between;
+         align-items:center;flex-wrap:wrap;gap:16px}
+  footer a{color:var(--subtext)}footer a:hover{color:var(--text)}
+  footer .dl{display:flex;gap:20px}
+  .donate{color:var(--accent)!important;font-weight:700}
+
+  @media(max-width:860px){
+    .hero{grid-template-columns:1fr;gap:40px;padding:24px 0 48px}
+    h1{font-size:40px}.grid{grid-template-columns:1fr}.steps{grid-template-columns:1fr}
+    .mock{transform:none}.section{padding:48px 0}.install{padding:26px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav>
+    <div class="brand"><img src="icon.png" alt="">SSH Manager</div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/aidevelopmentsnz/ssh-manager">GitHub</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div>
+      <div class="eyebrow">macOS · free &amp; open source</div>
+      <h1>Your SSH connections,<br><span class="grad">one click away.</span></h1>
+      <p class="lede">A modern, dark-themed SSH connection manager for macOS. Save your
+        hosts, keys and options once — then double-click to open them in Terminal. No more
+        retyping <code style="font-family:Menlo,monospace;font-size:15px">ssh&nbsp;user@host&nbsp;-i&nbsp;…</code> every time.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://github.com/aidevelopmentsnz/ssh-manager/releases/latest">
+          ⬇&nbsp; Download for macOS</a>
+        <a class="btn btn-ghost" href="https://github.com/aidevelopmentsnz/ssh-manager">★ Star on GitHub</a>
+      </div>
+      <div class="brew">
+        <span><span class="dollar">$</span> brew install --cask aidevelopmentsnz/tap/ssh-manager</span>
+        <button class="copy" onclick="navigator.clipboard.writeText('brew install --cask --no-quarantine aidevelopmentsnz/tap/ssh-manager');this.textContent='Copied'">Copy</button>
+      </div>
+      <p class="sub-note">Self-contained — bundles its own Python + Tk, no dependencies.
+        Unsigned, so first launch: right-click → <b style="color:var(--text)">Open</b>.</p>
+    </div>
+
+    <!-- App window mockup -->
+    <div class="mock" aria-label="SSH Manager app window">
+      <div class="titlebar">
+        <div class="lights"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+        <b>SSH Manager</b>
+      </div>
+      <div class="mbody">
+        <div class="mhead">
+          <div class="ico">&gt;_</div>
+          <div>
+            <h3>SSH Manager</h3>
+            <div class="by">by AI Developments &nbsp; <a href="#">Donate</a></div>
+          </div>
+        </div>
+        <div class="msearch">Search connections…</div>
+        <div class="card">
+          <div class="av" style="background:var(--accent)">A</div>
+          <div class="meta"><div class="nm">Apollo</div><div class="ho">admin@apollo</div></div>
+          <div class="ch">›</div>
+        </div>
+        <div class="card">
+          <div class="av" style="background:var(--orange)">O</div>
+          <div class="meta"><div class="nm">Orion</div><div class="ho">admin@orion</div></div>
+          <div class="ch">›</div>
+        </div>
+        <div class="card">
+          <div class="av" style="background:var(--teal)">V</div>
+          <div class="meta"><div class="nm">Vega</div><div class="ho">admin@vega</div></div>
+          <div class="ch">›</div>
+        </div>
+        <div class="mfoot">
+          <div class="mbtn pri">Connect</div>
+          <div class="mbtn">+ Add</div>
+          <div class="mbtn">Edit</div>
+          <div class="mbtn del">Delete</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="section" id="features">
+    <h2>Built for people who live in the terminal</h2>
+    <p class="sub">Everything you need to manage a fleet of servers, nothing you don't.</p>
+    <div class="grid">
+      <div class="feat"><div class="fi">⚡</div><h4>One-click connect</h4>
+        <p>Double-click a saved connection (or select it and hit Connect) to open Terminal and SSH straight in.</p></div>
+      <div class="feat"><div class="fi">🗂️</div><h4>Full connection manager</h4>
+        <p>Add, edit and delete connections with host, user, port, identity file and any extra SSH options.</p></div>
+      <div class="feat"><div class="fi">🔍</div><h4>Instant search</h4>
+        <p>Filter your list as it grows — find the right box by name, host or user in a keystroke.</p></div>
+      <div class="feat"><div class="fi">🎨</div><h4>Clean dark UI</h4>
+        <p>Rounded cards, colour-coded avatar badges, a themed scrollbar and a Proton-inspired purple accent.</p></div>
+      <div class="feat"><div class="fi">📄</div><h4>Plain-text storage</h4>
+        <p>Connections live as JSON in <code style="font-family:Menlo,monospace;font-size:12.5px">~/.config/ssh-manager</code> — easy to back up, edit or sync.</p></div>
+      <div class="feat"><div class="fi">🛠️</div><h4>Quick /etc/hosts edit</h4>
+        <p>A built-in shortcut to pop open your hosts file when you need to wire up a new alias.</p></div>
+    </div>
+  </section>
+
+  <!-- INSTALL -->
+  <section class="section" id="install">
+    <h2>Install in seconds</h2>
+    <p class="sub">Two ways to get it — pick whichever you like.</p>
+    <div class="install">
+      <div class="steps">
+        <div class="step">
+          <h4><span class="n">1</span> Homebrew</h4>
+          <div class="code">brew install --cask --no-quarantine \
+  aidevelopmentsnz/tap/ssh-manager</div>
+          <p class="note">The tap also carries our other apps. <code>--no-quarantine</code>
+            skips the Gatekeeper prompt on first launch.</p>
+        </div>
+        <div class="step">
+          <h4><span class="n">2</span> Direct download</h4>
+          <div class="code">1. Download the .dmg from Releases
+2. Drag SSH Manager → Applications
+3. Right-click the app → Open → Open</div>
+          <p class="note"><a class="donate" href="https://github.com/aidevelopmentsnz/ssh-manager/releases/latest">Download the latest DMG →</a></p>
+        </div>
+      </div>
+      <p class="note" style="margin-top:24px"><b>Heads up:</b> SSH Manager isn't yet
+        signed/notarized, so macOS warns on first launch — approve it once with a
+        right-click → Open. Apple&nbsp;Silicon Macs run it via Rosetta (you'll be prompted
+        to install it the first time if needed).</p>
+    </div>
+  </section>
+
+  <footer>
+    <div>© 2026 AI Developments · MIT licensed</div>
+    <div class="dl">
+      <a href="https://github.com/aidevelopmentsnz/ssh-manager">GitHub</a>
+      <a href="https://github.com/aidevelopmentsnz/ssh-manager/releases">Releases</a>
+      <a class="donate" href="https://buy.stripe.com/fZu5kE74kbb67dK5V86J200">♥ Donate</a>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
