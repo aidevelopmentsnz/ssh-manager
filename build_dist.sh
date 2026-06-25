@@ -21,18 +21,19 @@ BUNDLE_ID="nz.co.aidevelopments.sshmanager"
 APP_VERSION="${APP_VERSION:-1.0}"
 VENV="${BUILD_VENV:-/tmp/sshmgr-buildvenv}"
 
-# Locate a Python with a working Tk. Prefer a universal2 python.org framework
-# build (gives a universal app); fall back to Homebrew (single-arch). Override
-# with PYTHON=/path/to/python3.
+# Locate a Python with a working Tk. Prefer a Homebrew python with the modern
+# Tk 9 (proper Retina/HiDPI scaling — renders text at full size, matching the
+# launcher build); fall back to a python.org framework build. Override with
+# PYTHON=/path/to/python3.
 PY="${PYTHON:-}"
 if [ -z "$PY" ]; then
     for cand in \
+        /opt/homebrew/opt/python@3.14/bin/python3.14 \
+        /usr/local/opt/python@3.14/bin/python3.14 \
+        "$(command -v python3.14)" \
         /Library/Frameworks/Python.framework/Versions/3.13/bin/python3 \
         /Library/Frameworks/Python.framework/Versions/3.12/bin/python3 \
         /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 \
-        /usr/local/opt/python@3.14/bin/python3.14 \
-        /opt/homebrew/opt/python@3.14/bin/python3.14 \
-        "$(command -v python3.14)" \
         "$(command -v python3)"; do
         if [ -x "$cand" ]; then PY="$cand"; break; fi
     done

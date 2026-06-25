@@ -21,6 +21,24 @@ Connections are stored as plain JSON at
 `~/.config/ssh-manager/connections.json`, so they're easy to back up or edit
 by hand.
 
+## Download
+
+**[⬇️ Download the latest DMG](https://github.com/aidevelopmentsnz/ssh-manager/releases/latest)** — open it and drag SSH Manager to your Applications folder. The bundled app ships its own Python + Tk, so end users need nothing installed.
+
+Or with [Homebrew](https://brew.sh):
+
+```sh
+brew install --cask --no-quarantine aidevelopmentsnz/tap/ssh-manager
+```
+
+> **First launch:** the app is currently **unsigned** (not yet notarized), so
+> macOS Gatekeeper will warn. Either install with `--no-quarantine` (as above),
+> or **right-click the app → Open → Open** once to approve it. Apple Silicon Macs
+> run it via Rosetta — you'll be prompted to install Rosetta on first launch if
+> it isn't already present.
+
+The sections below are for **running from source or building it yourself**.
+
 ## Requirements
 
 | Requirement | Notes |
