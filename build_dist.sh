@@ -21,21 +21,38 @@ BUNDLE_ID="nz.co.aidevelopments.sshmanager"
 APP_VERSION="${APP_VERSION:-1.0}"
 VENV="${BUILD_VENV:-/tmp/sshmgr-buildvenv}"
 
-# Locate a Homebrew Python with a working Tk (Intel or Apple Silicon).
-PY=""
-for cand in \
-    /usr/local/opt/python@3.14/bin/python3.14 \
-    /opt/homebrew/opt/python@3.14/bin/python3.14 \
-    "$(command -v python3.14)"; do
-    if [ -x "$cand" ]; then PY="$cand"; break; fi
-done
+# Locate a Python with a working Tk. Prefer a universal2 python.org framework
+# build (gives a universal app); fall back to Homebrew (single-arch). Override
+# with PYTHON=/path/to/python3.
+PY="${PYTHON:-}"
 if [ -z "$PY" ]; then
-    echo "ERROR: Homebrew python@3.14 not found. Run: brew install python-tk" >&2
+    for cand in \
+        /Library/Frameworks/Python.framework/Versions/3.13/bin/python3 \
+        /Library/Frameworks/Python.framework/Versions/3.12/bin/python3 \
+        /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 \
+        /usr/local/opt/python@3.14/bin/python3.14 \
+        /opt/homebrew/opt/python@3.14/bin/python3.14 \
+        "$(command -v python3.14)" \
+        "$(command -v python3)"; do
+        if [ -x "$cand" ]; then PY="$cand"; break; fi
+    done
+fi
+if [ -z "$PY" ]; then
+    echo "ERROR: no suitable Python found. Run: brew install python-tk" >&2
     exit 1
 fi
-echo "Using Python: $PY"
 
-# Build venv with PyInstaller.
+# Decide target arch from the interpreter's own slices.
+ARCHS="$(lipo -archs "$(readlink -f "$PY" 2>/dev/null || echo "$PY")" 2>/dev/null || true)"
+TARGET_FLAG=""
+if echo "$ARCHS" | grep -q arm64 && echo "$ARCHS" | grep -q x86_64; then
+    TARGET_FLAG="--target-arch universal2"
+    echo "Using Python: $PY  (universal2 -> building universal app)"
+else
+    echo "Using Python: $PY  (single-arch: ${ARCHS:-unknown})"
+fi
+
+# Build venv with PyInstaller. (Keyed to the chosen interpreter.)
 if [ ! -x "$VENV/bin/pyinstaller" ]; then
     echo "Creating build venv at $VENV"
     "$PY" -m venv "$VENV"
@@ -48,6 +65,7 @@ rm -rf build "dist/$APP_NAME.app" "dist/$APP_NAME.dmg"
     --icon icon.icns \
     --add-data "logo.png:." \
     --osx-bundle-identifier "$BUNDLE_ID" \
+    $TARGET_FLAG \
     ssh_manager.py
 
 # Stamp a real version into the bundle (PyInstaller leaves it at 0.0.0).
