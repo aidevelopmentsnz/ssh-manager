@@ -108,9 +108,15 @@ need *nothing* installed — and the menu bar reads "SSH Manager", not "Python")
 plus a drag-to-install DMG:
 
 ```sh
-brew install python-tk      # build machine only
 ./build_dist.sh
 ```
+
+The release build is **universal2** (Intel + Apple Silicon), so it needs a
+universal2 interpreter — install the framework build from
+[python.org](https://www.python.org/downloads/macos/) and `build_dist.sh` picks
+it up automatically. (Homebrew's `python@3.14` has the newer Tk 9 but is
+single-arch, so the script refuses it for a release build; override with
+`PYTHON=…` or `ALLOW_SINGLE_ARCH=1` to build a single-arch app anyway.)
 
 Outputs:
 

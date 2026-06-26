@@ -21,36 +21,62 @@ BUNDLE_ID="nz.co.aidevelopments.sshmanager"
 APP_VERSION="${APP_VERSION:-1.0}"
 VENV="${BUILD_VENV:-/tmp/sshmgr-buildvenv}"
 
-# Locate a Python with a working Tk. Prefer a Homebrew python with the modern
-# Tk 9 (proper Retina/HiDPI scaling — renders text at full size, matching the
-# launcher build); fall back to a python.org framework build. Override with
-# PYTHON=/path/to/python3.
+# Locate a Python with a working Tk. A DISTRIBUTION build MUST ship a
+# universal2 binary (Intel + Apple Silicon); a single-arch interpreter would
+# silently produce an Intel-only (or arm64-only) app — the v1.0 bug, where the
+# app only launched on machines that happened to have Rosetta 2 installed. So
+# we PREFER a universal2 interpreter and refuse to build single-arch unless
+# ALLOW_SINGLE_ARCH=1.
+#
+# NOTE: python.org framework builds are universal2 (but ship Tk 8.6). Homebrew
+# python@3.14 has the newer Tk 9 (nicer HiDPI text) but is single-arch, so it
+# is NOT suitable for a release build. Override the interpreter with PYTHON=.
+is_universal() {
+    local a; a="$(lipo -archs "$(readlink -f "$1" 2>/dev/null || echo "$1")" 2>/dev/null)"
+    echo "$a" | grep -q arm64 && echo "$a" | grep -q x86_64
+}
+
+CANDIDATES=(
+    /Library/Frameworks/Python.framework/Versions/3.13/bin/python3
+    /Library/Frameworks/Python.framework/Versions/3.12/bin/python3
+    /Library/Frameworks/Python.framework/Versions/3.11/bin/python3
+    /opt/homebrew/opt/python@3.14/bin/python3.14
+    /usr/local/opt/python@3.14/bin/python3.14
+    "$(command -v python3.14)"
+    "$(command -v python3)"
+)
 PY="${PYTHON:-}"
+# Pass 1: first universal2 interpreter wins.
 if [ -z "$PY" ]; then
-    for cand in \
-        /opt/homebrew/opt/python@3.14/bin/python3.14 \
-        /usr/local/opt/python@3.14/bin/python3.14 \
-        "$(command -v python3.14)" \
-        /Library/Frameworks/Python.framework/Versions/3.13/bin/python3 \
-        /Library/Frameworks/Python.framework/Versions/3.12/bin/python3 \
-        /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 \
-        "$(command -v python3)"; do
-        if [ -x "$cand" ]; then PY="$cand"; break; fi
+    for cand in "${CANDIDATES[@]}"; do
+        [ -x "$cand" ] || continue
+        if is_universal "$cand"; then PY="$cand"; break; fi
+    done
+fi
+# Pass 2: fall back to any working interpreter (single-arch).
+if [ -z "$PY" ]; then
+    for cand in "${CANDIDATES[@]}"; do
+        [ -x "$cand" ] && { PY="$cand"; break; }
     done
 fi
 if [ -z "$PY" ]; then
-    echo "ERROR: no suitable Python found. Run: brew install python-tk" >&2
+    echo "ERROR: no suitable Python found. Install the universal2 build from python.org." >&2
     exit 1
 fi
 
 # Decide target arch from the interpreter's own slices.
-ARCHS="$(lipo -archs "$(readlink -f "$PY" 2>/dev/null || echo "$PY")" 2>/dev/null || true)"
 TARGET_FLAG=""
-if echo "$ARCHS" | grep -q arm64 && echo "$ARCHS" | grep -q x86_64; then
+if is_universal "$PY"; then
     TARGET_FLAG="--target-arch universal2"
     echo "Using Python: $PY  (universal2 -> building universal app)"
 else
-    echo "Using Python: $PY  (single-arch: ${ARCHS:-unknown})"
+    ARCHS="$(lipo -archs "$(readlink -f "$PY" 2>/dev/null || echo "$PY")" 2>/dev/null || true)"
+    if [ "${ALLOW_SINGLE_ARCH:-0}" != "1" ]; then
+        echo "ERROR: $PY is single-arch (${ARCHS:-unknown}); a release build must be universal2." >&2
+        echo "       Install python.org's universal2 build, or set ALLOW_SINGLE_ARCH=1 to override." >&2
+        exit 1
+    fi
+    echo "WARNING: building SINGLE-ARCH app from $PY (${ARCHS:-unknown}) — ALLOW_SINGLE_ARCH=1"
 fi
 
 # Build venv with PyInstaller. (Keyed to the chosen interpreter.)
@@ -76,6 +102,15 @@ for key in CFBundleShortVersionString CFBundleVersion; do
         || /usr/libexec/PlistBuddy -c "Add :$key string $APP_VERSION" "$PLIST"
 done
 echo "Stamped version $APP_VERSION"
+
+# Re-sign AFTER the Info.plist edits. PyInstaller ad-hoc signs the bundle during
+# the build, but the PlistBuddy edits above modify Info.plist and break that
+# seal (Gatekeeper reports "plist or signature have been modified" /
+# "Info.plist=not bound", which surfaces to end users as a "damaged" app).
+# Codesign must therefore be the LAST mutation of the bundle.
+echo "Re-signing bundle (ad-hoc) after Info.plist edits…"
+codesign --force --deep --sign - "dist/$APP_NAME.app"
+codesign --verify --deep --strict --verbose=2 "dist/$APP_NAME.app"
 
 # Build a drag-to-install DMG with hdiutil (no Finder automation needed).
 echo "Building DMG…"
